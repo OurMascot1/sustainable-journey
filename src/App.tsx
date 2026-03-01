@@ -13,6 +13,7 @@ import Subscription from "./pages/Subscription";
 import Trainings from "./pages/Trainings";
 import Clients from "./pages/Clients";
 import Partners from "./pages/Partners";
+import PitchDeck from "./pages/PitchDeck";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/trainings" element={<Trainings />} />
               <Route path="/clients" element={<Clients />} />
               <Route path="/partners" element={<Partners />} />
+              <Route path="/pitch-deck" element={<PitchDeck />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
