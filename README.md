@@ -2,8 +2,8 @@
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
-
+[**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+](https://lovable.dev/projects/e8395567-7886-44ec-88bb-f9581349728e?magic_link=mc_d98801ed-33c7-4fcf-8902-c4cd121b78fb)
 ## How can I edit this code?
 
 There are several ways of editing your application.
