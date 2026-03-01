@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, Download, Printer, Maximize2, Minimize2,
@@ -840,7 +840,10 @@ const SLIDE_TITLES = [
 export default function PitchDeck() {
   const [current, setCurrent] = useState(1);
   const [fullscreen, setFullscreen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const slideRef = useRef<HTMLDivElement>(null);
 
   const ActiveSlide = SLIDES[current - 1];
 
@@ -859,6 +862,53 @@ export default function PitchDeck() {
   }, [current, fullscreen]);
 
   const handlePrint = () => window.print();
+
+  const handleExportPDF = useCallback(async () => {
+    setExporting(true);
+    setExportProgress(0);
+    const savedSlide = current;
+
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      const { default: html2canvas } = await import("html2canvas");
+
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+
+      for (let i = 1; i <= TOTAL_SLIDES; i++) {
+        setCurrent(i);
+        setExportProgress(Math.round((i / TOTAL_SLIDES) * 90));
+        // Wait for render
+        await new Promise(r => setTimeout(r, 600));
+
+        const el = document.getElementById("slide-capture");
+        if (!el) continue;
+
+        const canvas = await html2canvas(el, {
+          scale: 1.5,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+        });
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.92);
+        const imgH = (canvas.height * pageW) / canvas.width;
+
+        if (i > 1) pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, (pageH - imgH) / 2, pageW, imgH);
+      }
+
+      setExportProgress(98);
+      pdf.save("Sustainable-Voyage-Pitch-Deck.pdf");
+      setExportProgress(100);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+    } finally {
+      setCurrent(savedSlide);
+      setTimeout(() => { setExporting(false); setExportProgress(0); }, 800);
+    }
+  }, [current]);
 
   return (
     <div className={`page-transition ${fullscreen ? "fixed inset-0 z-50 bg-background overflow-y-auto" : ""}`} ref={containerRef}>
@@ -880,6 +930,20 @@ export default function PitchDeck() {
               <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white"
                 style={{ background: "hsl(142 71% 35% / 0.5)", border: "1px solid hsl(142 50% 50% / 0.5)" }}>
                 <Printer size={14} /> Print
+              </button>
+              <button
+                onClick={handleExportPDF}
+                disabled={exporting}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-70 transition-all"
+                style={{ background: exporting ? "hsl(142 50% 28%)" : "hsl(142 71% 35%)", border: "1px solid hsl(142 50% 50% / 0.5)", minWidth: 140 }}>
+                {exporting ? (
+                  <>
+                    <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+                    Exporting… {exportProgress}%
+                  </>
+                ) : (
+                  <><Download size={14} /> Export PDF</>
+                )}
               </button>
               <button onClick={() => setFullscreen(f => !f)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white"
                 style={{ background: "hsl(142 71% 35% / 0.5)", border: "1px solid hsl(142 50% 50% / 0.5)" }}>
@@ -942,7 +1006,19 @@ export default function PitchDeck() {
 
         {/* Active Slide */}
         <div className="relative">
-          <ActiveSlide />
+          {exporting && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-2xl pointer-events-none"
+              style={{ background: "hsl(142 71% 10% / 0.7)", backdropFilter: "blur(4px)" }}>
+              <div className="text-white font-bold text-lg mb-3">📄 Generating PDF…</div>
+              <div className="w-64 h-3 rounded-full overflow-hidden" style={{ background: "hsl(142 30% 25%)" }}>
+                <div className="h-3 rounded-full transition-all duration-300" style={{ width: `${exportProgress}%`, background: "hsl(142 71% 55%)" }} />
+              </div>
+              <div className="text-white text-sm mt-2 opacity-70">Slide {current} of {TOTAL_SLIDES} — {exportProgress}%</div>
+            </div>
+          )}
+          <div id="slide-capture">
+            <ActiveSlide />
+          </div>
         </div>
 
         {/* Bottom navigation */}
