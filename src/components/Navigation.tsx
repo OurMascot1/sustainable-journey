@@ -21,6 +21,7 @@ const navItems = [
   { label: "Subscription", href: "/subscription" },
   { label: "Trainings & Resources", href: "/trainings" },
   { label: "Contact Us", href: "/contact" },
+  { label: "Pitch Deck", href: "/pitch-deck" },
 ];
 
 export default function Navigation() {
